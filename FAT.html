@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>FAT</title>
+<meta name="theme-color" content="#07080b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;600;700;800&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--ink:#07080b;--panel:rgba(255,255,255,.04);--edge:rgba(255,222,150,.13);--gold:#ffd25e;--ember:#ff9f1c;--rust:#b4540a;--mint:#6bf2b8;--red:#ff6b5e;--txt:#f4efe4;--mut:#8f8a7e;--disp:"Unbounded","Manrope",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--ink);color:var(--txt);font-family:"Manrope","Hind Siliguri",system-ui,sans-serif;overflow:hidden}
+body:before{content:"";position:fixed;inset:0;z-index:0;background:
+radial-gradient(60% 38% at 50% 34%,rgba(255,159,28,.16),transparent 70%),
+radial-gradient(70% 30% at 50% 108%,rgba(180,84,10,.28),transparent 70%),
+linear-gradient(#07080b,#0b0a0d)}
+canvas#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+#app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding-top:env(safe-area-inset-top,0)}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 6px}
+.lvb{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13px;color:var(--mut)}
+.lvb b{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font:800 14px var(--disp);color:#3a1d02;background:linear-gradient(145deg,#ffe38a,#f2a21c);box-shadow:0 4px 14px rgba(255,159,28,.35)}
+.st{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--mut)}
+.st i{width:8px;height:8px;border-radius:50%;background:#55524a}
+.st.on{color:var(--gold)}.st.on i{background:var(--ember);box-shadow:0 0 10px var(--ember);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 16px 120px;-webkit-overflow-scrolling:touch}
+h1{font:700 22px var(--disp);text-align:center;margin:8px 0 4px;letter-spacing:-.01em}
+.sub{text-align:center;color:var(--mut);font-size:13px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:20px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:13px;animation:in .35s both}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ic{width:46px;height:46px;border-radius:14px;background:linear-gradient(145deg,rgba(255,210,94,.16),rgba(255,159,28,.05));border:1px solid var(--edge);display:grid;place-items:center;font-size:21px;flex:none}
+.grow{flex:1;min-width:0}
+.t{font-weight:800;font-size:15px;word-break:break-word}.d{color:var(--mut);font-size:12.5px;margin-top:3px;word-break:break-word;line-height:1.35}
+.pill{background:rgba(255,255,255,.06);color:var(--mut);border-radius:99px;padding:9px 13px;font-size:12px;font-weight:700;text-align:center;flex:none;font-variant-numeric:tabular-nums}
+.btn{border:0;border-radius:99px;font:800 14px "Manrope","Hind Siliguri",sans-serif;padding:11px 18px;min-height:44px;color:#2c1600;background:linear-gradient(180deg,#ffe38a,#f5a920);box-shadow:0 6px 18px rgba(255,159,28,.25);flex:none;transition:transform .12s}
+.btn:active{transform:scale(.96)}.btn:disabled{background:rgba(255,255,255,.06);color:#6c685e;box-shadow:none}
+.btn.sec{background:var(--panel);color:var(--txt);box-shadow:none;border:1px solid var(--edge)}
+.btn.w{width:100%}
+.btn.go{min-height:58px;font-size:16px;border-radius:20px}
+.btn.stop{background:rgba(255,159,28,.1);color:var(--gold);border:1px solid rgba(255,159,28,.45);box-shadow:none}
+.center{text-align:center}
+.lab{font-size:13px;color:var(--mut);font-weight:600}
+.bal{font:800 40px var(--disp);letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+.bal small{font:700 14px var(--disp);color:var(--gold);margin-left:6px}
+.sub2{font-size:12.5px;color:var(--mut);margin-top:6px}
+.sub2 b{color:var(--txt);font-weight:700}
+.stage{position:relative;height:296px;display:grid;place-items:center;margin:4px 0 0}
+.ring{position:absolute;width:290px;height:290px;transform:rotate(-90deg)}
+.glow{position:absolute;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(255,170,30,.3),transparent 68%);opacity:.3;transition:opacity .6s}
+.stage.on .glow{opacity:1;animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.1)}}
+.scene{perspective:900px;width:190px;height:190px;cursor:pointer}
+.coin3{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateX(10deg) rotateY(-16deg);filter:saturate(.7) brightness(.82);transition:filter .5s}
+.stage.on .coin3{filter:none;animation:spin 3.4s linear infinite}
+@keyframes spin{from{transform:rotateX(10deg) rotateY(0)}to{transform:rotateX(10deg) rotateY(360deg)}}
+.edge{position:absolute;inset:0;border-radius:50%;background:linear-gradient(90deg,#7d4207,#e8a02a 50%,#7d4207);transform:translateZ(calc(var(--z)*1px))}
+.face{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;background:radial-gradient(circle at 34% 28%,#fff3b0,#f7c13a 38%,#c27a10 76%,#8a4f08)}
+.face.f{transform:translateZ(9px)}.face.b{transform:rotateY(180deg) translateZ(9px)}
+.face:before{content:"";position:absolute;inset:14px;border-radius:50%;border:2px solid rgba(110,55,0,.45);box-shadow:inset 0 0 0 5px rgba(255,238,160,.25)}
+.face b{font:800 46px var(--disp);color:#5a3103;text-shadow:0 1px 0 rgba(255,240,170,.85),0 -1px 0 rgba(90,40,0,.3);letter-spacing:-.03em}
+.face:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.5) 50%,transparent 62%);transform:translateX(-100%)}
+.stage.on .face:after{animation:sweep 3.4s ease-in-out infinite}
+@keyframes sweep{0%,55%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.face.img:before,.face.img:after{display:none}.face.img{background:#e9b340;box-shadow:inset 0 0 0 5px #e9b340}.face.img img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
+.tick{font:800 26px var(--disp);color:var(--mint);margin:2px 0 14px;font-variant-numeric:tabular-nums;text-shadow:0 0 22px rgba(107,242,184,.4)}
+.tick small{font:600 12px "Manrope",sans-serif;color:var(--mut);display:block;text-shadow:none;margin-top:2px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.m{background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:11px 6px;text-align:center}
+.m span{font-size:11.5px;color:var(--mut);font-weight:600}.m b{display:block;font-size:14.5px;margin-top:3px}
+.prog{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);font-weight:600}
+.bar{height:7px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;margin:7px 0 16px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--rust),var(--ember),var(--gold));border-radius:6px;transition:width .6s}
+.acts{display:grid;gap:10px}
+.chart{background:linear-gradient(160deg,rgba(255,159,28,.09),rgba(255,255,255,.02));border:1px solid var(--edge);border-radius:22px;padding:16px;margin-bottom:14px}
+.chart .row1{display:flex;justify-content:space-between;align-items:baseline}
+.chart .row1 b{font:800 22px var(--disp);color:var(--gold)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mc{border-radius:22px;padding:14px 12px;text-align:center;background:var(--panel);border:1px solid var(--edge)}
+.mc.act{border-color:rgba(255,210,94,.7);box-shadow:0 0 22px rgba(255,159,28,.2);background:linear-gradient(170deg,rgba(255,159,28,.12),rgba(255,255,255,.02))}
+.mc.nxt{border-color:rgba(107,242,184,.45)}
+.mc.lock{opacity:.6}
+.mc .lvl{font:700 11px var(--disp);color:var(--gold)}
+.mc .pr{font:800 24px var(--disp);margin:12px 0 4px}.mc .pr small{font-size:13px;color:var(--gold)}
+.mc .btn{width:100%;font-size:12px;padding:9px 4px;min-height:38px;margin-top:10px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:12px 0}
+.days div{height:34px;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--mut)}
+.days .on{background:linear-gradient(180deg,#ffe38a,#f5a920);color:#2c1600}
+.tree{display:flex;flex-direction:column;align-items:center;gap:6px;margin:18px 0}
+.row{display:flex;gap:14px;justify-content:center}
+.node{width:42px;height:42px;border-radius:50%;background:var(--panel);border:1.5px solid var(--edge);display:grid;place-items:center;color:var(--mut);font-size:18px}
+.node.g{border-color:var(--gold);box-shadow:0 0 16px rgba(255,159,28,.35);color:var(--gold)}
+.ln{width:1.5px;height:16px;background:linear-gradient(var(--gold),transparent)}
+.tx{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px;text-align:left;font-weight:700}
+.empty{text-align:center;color:var(--mut);padding:20px;font-size:13px}
+.sec{font:700 14px var(--disp);margin:20px 2px 10px;color:var(--txt)}
+.me{display:flex;align-items:center;gap:14px;margin:6px 2px 16px}
+.av{width:62px;height:62px;border-radius:20px;display:grid;place-items:center;font:800 24px var(--disp);color:#3a1d02;background:linear-gradient(145deg,#ffe38a,#f2a21c);box-shadow:0 8px 22px rgba(255,159,28,.3)}
+.me b{font-size:18px}
+nav{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0));left:50%;transform:translateX(-50%);width:calc(100% - 28px);max-width:452px;z-index:5;display:flex;gap:2px;background:rgba(14,13,16,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--edge);border-radius:26px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+nav button{flex:1;background:none;border:0;color:var(--mut);font:700 10.5px "Manrope","Hind Siliguri",sans-serif;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;border-radius:20px;transition:.25s}
+nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.a{color:var(--gold);background:rgba(255,210,94,.12)}
+#toasts{position:fixed;top:calc(10px + env(safe-area-inset-top,0));left:0;right:0;z-index:30;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:rgba(20,18,14,.95);border:1px solid rgba(255,210,94,.5);color:var(--txt);padding:11px 18px;border-radius:16px;font-size:13px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:tin .3s,tout .4s 2.7s forwards}
+@keyframes tin{from{transform:translateY(-30px);opacity:0}}@keyframes tout{to{opacity:0;transform:translateY(-20px)}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);z-index:20;display:grid;place-items:center;padding:20px}
+.box{background:#101014;border:1px solid var(--edge);border-radius:26px;padding:22px;width:100%;max-width:380px;max-height:85vh;overflow:auto;text-align:center}
+.box h2{font:700 18px var(--disp);margin-bottom:6px}
+input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--edge);border-radius:14px;padding:13px;color:var(--txt);font:600 16px "Manrope",sans-serif;margin:6px 0;outline:0}
+input:focus{border-color:rgba(255,210,94,.6)}
+.warn{font-size:12px;color:#ffb74d;margin-top:8px}
+#boot{position:fixed;inset:0;z-index:50;background:var(--ink);display:grid;place-items:center;transition:opacity .5s}
+#boot b{font:800 30px var(--disp);color:var(--gold);animation:pulse 1.2s infinite;letter-spacing:.04em}
+@media(prefers-reduced-motion:reduce){.glow,.st i{animation:none!important}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="boot"><b>FAT</b></div>
+<div id="toasts"></div>
+<div id="app">
+  <header><div class="lvb" id="hl"></div><div class="st" id="hs"></div></header>
+  <main id="view"></main>
+</div>
+<nav id="nav"></nav>
+<div id="modal"></div>
+
+<script>
+/* ============ 1) FIREBASE CONFIG — paste yours from Firebase console (see SETUP.md) ============ */
+const firebaseConfig={
+  apiKey:"AIzaSyDUdVLhlAnrxjq9M26inxIhlGuToPcyjyM",
+  authDomain:"ftat-fe90e.firebaseapp.com",
+  databaseURL:"https://ftat-fe90e-default-rtdb.firebaseio.com",
+  projectId:"ftat-fe90e",
+  storageBucket:"ftat-fe90e.firebasestorage.app",
+  messagingSenderId:"369572258367",
+  appId:"1:369572258367:web:9ae0dafbd4dafac5a50e8a",
+  measurementId:"G-J19HCCEBSE"
+};
+/* Optional: URL of the tgAuth Cloud Function (secure Telegram login). Leave "" to use anonymous login. */
+const AUTH_URL="";
+
+/* ============ i18n ============ */
+const L={en:{mine:"Mine",tasks:"Tasks",miners:"Miners",friends:"Friends",profile:"Profile",balance:"Total balance",pool:"Pool",hold:"Holding",claim:"Claim",nothing:"Nothing to claim yet",start:"Start mining",stop:"Stop mining",on:"Mining",ready:"Idle",speed:"Speed",perHour:"Per hour",level:"Level",progress:"Next level",mined:"FAT mined, ready to claim",earn:"Earn rewards",earnSub:"Rewards go straight to your pool",complete:"Complete",verifying:"Verifying…",next:"Next in",store:"Miner store",storeSub:"Unlocks as you earn FAT",perf:"Last 24 hours",need:"Need",active:"Active",daily:"Daily reward",streak:"Streak",today:"Today",checkin:"Check in",checked:"Checked in today",invite:"Your invite link",copy:"Copy",share:"Share",copied:"Link copied",refs:"Referrals",succ:"successful",total:"total",refR:"Referral reward",team:"Team wallet",noref:"No referrals yet. Share your link to start.",you:"You",uid:"User ID",snd:"Sound effects",sndOn:"On — tap to mute",sndOff:"Off — tap to unmute",earned:"Total earned",claimed:"Total claimed",mt:"Mining time",wd:"Withdraw",wdMin:"Minimum",amount:"Amount (FAT)",wAddr:"Wallet address",insuff:"Not enough balance",badW:"Enter a valid wallet address",wdSent:"Request sent for review",hist:"Transaction history",notx:"No transactions yet",lang:"Language",ach:"Achievements",lvup:"⚡ Level up",close:"Close",offline:"Offline mining",doming:"Offline  mode: Firebase is not connected, data stays on this device.",ach1:"First login",ach2:"First task",ach3:"First claim",ach4:"First referral",ach5:"100 FAT earned",ach6:"7-day streak"},
+bn:{mine:"মাইন",tasks:"টাস্ক",miners:"মাইনার",friends:"বন্ধু",profile:"প্রোফাইল",balance:"মোট ব্যালেন্স",pool:"পুল",hold:"হোল্ডিং",claim:"ক্লেইম",nothing:"ক্লেইম করার মতো কিছু নেই",start:"মাইনিং শুরু করুন",stop:"মাইনিং বন্ধ করুন",on:"মাইনিং চলছে",ready:"বন্ধ",speed:"স্পিড",perHour:"প্রতি ঘণ্টায়",level:"লেভেল",progress:"পরবর্তী লেভেল",mined:"FAT মাইন হয়েছে, ক্লেইমের জন্য প্রস্তুত",earn:"রিওয়ার্ড অর্জন করুন",earnSub:"রিওয়ার্ড সরাসরি পুলে জমা হবে",complete:"সম্পন্ন করুন",verifying:"যাচাই হচ্ছে…",next:"পরবর্তী",store:"মাইনার স্টোর",storeSub:"FAT আয়ের সাথে আনলক হয়",perf:"গত ২৪ ঘণ্টা",need:"দরকার",active:"চালু",daily:"দৈনিক রিওয়ার্ড",streak:"স্ট্রিক",today:"আজ",checkin:"চেক-ইন",checked:"আজ চেক-ইন হয়েছে",invite:"আপনার ইনভাইট লিংক",copy:"কপি",share:"শেয়ার",copied:"লিংক কপি হয়েছে",refs:"রেফারেল",succ:"সফল",total:"মোট",refR:"রেফারেল রিওয়ার্ড",team:"টিম ওয়ালেট",noref:"এখনো কোনো রেফারেল নেই। লিংক শেয়ার করে শুরু করুন।",you:"আপনি",uid:"ইউজার আইডি",snd:"সাউন্ড ইফেক্ট",sndOn:"চালু — বন্ধ করতে ট্যাপ করুন",sndOff:"বন্ধ — চালু করতে ট্যাপ করুন",earned:"মোট আয়",claimed:"মোট ক্লেইম",mt:"মাইনিং সময়",wd:"উইথড্র",wdMin:"ন্যূনতম",amount:"পরিমাণ (FAT)",wAddr:"ওয়ালেট অ্যাড্রেস",insuff:"ব্যালেন্স যথেষ্ট নয়",badW:"সঠিক ওয়ালেট অ্যাড্রেস দিন",wdSent:"রিকোয়েস্ট রিভিউয়ের জন্য গেছে",hist:"লেনদেনের ইতিহাস",notx:"এখনো কোনো লেনদেন নেই",lang:"ভাষা",ach:"অর্জন",lvup:"⚡ লেভেল বেড়েছে",close:"বন্ধ",offline:"অফলাইন মাইনিং",doming:"অফলাইন ডেমো মোড: Firebase যুক্ত নেই, ডেটা শুধু এই ডিভাইসে থাকবে।",ach1:"প্রথম লগইন",ach2:"প্রথম টাস্ক",ach3:"প্রথম ক্লেইম",ach4:"প্রথম রেফারেল",ach5:"১০০ FAT আয়",ach6:"৭ দিনের স্ট্রিক"}};
+
+/* ============ Config (loaded from Firestore, cached locally) ============ */
+const CK="atf_cfg_cache",KEY="atf_user_v2";
+const C={bot:"FAT_AIRDROP_bot",app:"",coin:"",minWd:1,cap:24,
+ tasks:[
+  {id:"yt",ic:"💬",n:"YouTube Like & Comment",d:"Like and comment on the latest video",r:1,cd:7200,url:"https://youtube.com"},
+  {id:"x",ic:"🔁",n:"X (Twitter) Retweet",d:"Retweet the pinned post",r:1,cd:7200,url:"https://x.com"},
+  {id:"web",ic:"🌐",n:"Visit Website",d:"Open the official website",r:1,cd:7200,url:"https://atftoken.com"},
+  {id:"react",ic:"🔥",n:"React to latest post",d:"Add a reaction in the channel",r:1,cd:7200,url:"https://t.me"},
+  {id:"bio",ic:"🔗",n:"Keep FAT Channel in Bio",d:"Add the channel link to your Telegram bio",r:3,cd:10800,url:"https://t.me"}],
+ miners:[0,100,400,900,1600,2500].map((n,i)=>({id:"m"+(i+1),name:"",price:+(0.05*(i+1)).toFixed(3),speed:+(0.2+0.12*(i+1)).toFixed(2),need:n,hr:+(1.44*(i+1)).toFixed(2)}))};
+try{Object.assign(C,JSON.parse(localStorage.getItem(CK)||"{}"))}catch(e){}
+
+/* ============ State ============ */
+const tg=window.Telegram&&Telegram.WebApp;
+if(tg){tg.ready();tg.expand();tg.setHeaderColor&&tg.setHeaderColor("#07080b");tg.setBackgroundColor&&tg.setBackgroundColor("#07080b")}
+const tu=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user)||{id:"0000000000",username:"guest"};
+const startP=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param;
+const fresh=()=>({upd:0,tgId:tu.id,user:tu.username||tu.first_name||"",ref:"",pool:0,hold:0,claimable:0,earned:0,claimed:0,lvl:1,mining:false,last:Date.now(),miningMs:0,tasks:{},tx:[],streak:0,lastCheck:"",sound:true,lang:"en",refs:{total:0,ok:0},h24:[],refunded:[]});
+let S;try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){S=fresh()}
+S.tgId=tu.id;if(tu.username)S.user=tu.username;
+let fbOK=false,db,uid,dirty=false,lastCloud=0,booting=true;const WDS={};
+
+function save(){S.upd=Date.now();S.tx=S.tx.slice(0,50);S.h24=S.h24.slice(-200);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}dirty=true}
+function push(force){if(!fbOK||!dirty)return;if(!force&&Date.now()-lastCloud<8000)return;dirty=false;lastCloud=Date.now();try{db.doc("users/"+uid).set(JSON.parse(JSON.stringify(S))).catch(()=>{dirty=true})}catch(e){dirty=true}}
+
+/* ============ Game logic ============ */
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MS=()=>{const m=C.miners.slice().sort((a,b)=>a.need-b.need);return m.length?m:[{id:"x",name:"",price:0,speed:0,need:0,hr:0}]};
+const LV=()=>{let l=1;MS().forEach((x,i)=>{if(i>0&&S.earned>=x.need)l=i+1});return l};
+const cur=()=>MS()[LV()-1];
+const need=()=>{const n=MS()[LV()];return n?n.need:Math.max(S.earned,1)};
+const rate=()=>S.mining?cur().hr/3600:0;
+/* Mining is time-based, so it keeps running while the app is closed (capped by C.cap hours). */
+function accrue(){const n=Date.now();let s=Math.max(0,(n-(S.last||n))/1000);const cap=C.cap*3600;if(cap&&s>cap)s=cap;let g=0;if(S.mining){g=s*rate();S.claimable+=g;S.miningMs+=s*1000}S.last=n;return g}
+function addTx(type,amt){S.tx.unshift({t:Date.now(),type,amt,st:"COMPLETED"});if(amt>0)S.h24.push([Date.now(),amt])}
+function credit(amt,type){S.pool+=amt;S.earned+=amt;addTx(type,amt);checkLevel();save()}
+function checkLevel(){const l=LV();if(l>S.lvl)toast(t("lvup")+" "+l,"lvl");S.lvl=l}
+const t=k=>(L[S.lang]||L.en)[k]||k;
+const nf=(n,d=3)=>(+n).toLocaleString("en",{minimumFractionDigits:d,maximumFractionDigits:d});
+function hms(s){s=Math.max(0,s|0);return[s/3600|0,s/60%60|0,s%60].map(x=>String(x).padStart(2,"0")).join(":")}
+const link=()=>C.app?`https://t.me/${C.bot}/${C.app}?startapp=${S.tgId}`:`https://t.me/${C.bot}?start=${S.tgId}`;
+
+/* ============ UI helpers ============ */
+const $=s=>document.querySelector(s);
+let tab="mine",ac;
+function beep(f=660){if(!S.sound)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.07;o.connect(g);g.connect(ac.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.25);o.stop(ac.currentTime+.25)}catch(e){}}
+function toast(m,k){const e=document.createElement("div");e.className="toast";e.textContent=m;$("#toasts").appendChild(e);beep(k==="lvl"?880:660);setTimeout(()=>e.remove(),3200);tg&&tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred("success")}
+function modal(h){$("#modal").innerHTML=`<div class="modal" onclick="if(event.target===this)closeM()"><div class="box">${h}</div></div>`}
+function closeM(){$("#modal").innerHTML=""}
+function openU(u){try{if(tg&&/^https:\/\/t\.me\//i.test(u)&&tg.openTelegramLink)tg.openTelegramLink(u);else if(tg&&tg.openLink)tg.openLink(u);else window.open(u,"_blank")}catch(e){window.open(u,"_blank")}}
+
+/* ============ Actions ============ */
+function toggleMine(){accrue();S.mining=!S.mining;S.last=Date.now();save();push(true);draw()}
+function claim(){accrue();if(S.claimable<=0.0005)return;const a=S.claimable;S.claimable=0;S.pool+=a;S.earned+=a;S.claimed+=a;addTx("CLAIM",a);checkLevel();save();push(true);burst();toast("✓ "+t("claim")+" +"+nf(a));draw()}
+function doTask(id){const k=C.tasks.find(x=>x.id===id);if(!k)return;const s=S.tasks[id];if(s&&(s.v||s>Date.now()))return;openU(k.url);S.tasks[id]={v:Date.now()+5000};save();draw()}
+/* DEMO verification: real task verification must be done by your server (Cloud Function). */
+function fin(id){const s=S.tasks[id];if(!s||!s.v||s.v>Date.now())return;const k=C.tasks.find(x=>x.id===id);if(!k){delete S.tasks[id];save();return}S.tasks[id]=Date.now()+k.cd*1000;credit(k.r,"TASK");toast("✓ "+k.n+" +"+nf(k.r));refresh()}
+function checkin(){const d=new Date().toDateString();if(S.lastCheck===d)return;S.lastCheck=d;S.streak=Math.min(S.streak+1,7);const r=S.streak*0.5;credit(r,"BONUS");push(true);toast("🎁 +"+nf(r));draw()}
+function copyLink(){const l=link();(navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).catch(()=>{}).finally(()=>toast(t("copied")))}
+function shareLink(){openU("https://t.me/share/url?url="+encodeURIComponent(link())+"&text="+encodeURIComponent("⛏ FAT"))}
+function setLang(l){S.lang=l;save();nav();draw()}
+function togSound(){S.sound=!S.sound;save();draw()}
+function wdM(){modal(`<h2>${t("wd")}</h2><p class="d" style="margin:8px 0">${t("pool")}: ${nf(S.pool)} FAT · ${t("wdMin")}: ${nf(C.minWd,0)} FAT</p>
+<input id="wa" type="number" inputmode="decimal" placeholder="${t("amount")}"><input id="ww" type="text" autocomplete="off" placeholder="${t("wAddr")}"><p class="warn" id="we" style="min-height:18px"></p>
+<div style="display:flex;gap:10px;justify-content:center;margin-top:6px"><button class="btn" onclick="wdGo()">${t("wd")}</button><button class="btn sec" onclick="closeM()">${t("close")}</button></div>`)}
+async function wdGo(){const v=+$("#wa").value,w=$("#ww").value.trim(),el=$("#we");
+ if(!(v>0)||v>S.pool)return el.textContent=t("insuff");
+ if(v<C.minWd)return el.textContent=t("wdMin")+": "+C.minWd+" FAT";
+ if(w.length<10)return el.textContent=t("badW");
+ let wid="L"+Date.now();
+ if(fbOK){try{const r=await db.collection("withdrawals").add({uid,tg:String(S.tgId),user:S.user,amt:v,wallet:w,status:"PENDING",refunded:false,t:firebase.firestore.FieldValue.serverTimestamp()});wid=r.id}catch(e){return el.textContent="Network error, try again"}}
+ S.pool-=v;WDS[wid]="PENDING";S.tx.unshift({t:Date.now(),type:"WITHDRAW",amt:-v,wid});save();push(true);closeM();toast("✓ "+t("wdSent"));draw()}
+function histM(){modal(`<h2>${t("hist")}</h2>${S.tx.length?S.tx.map(x=>{const st=x.wid?(WDS[x.wid]||"PENDING"):x.st;const c=x.amt<0?"var(--red)":"var(--mint)";return`<div class="tx"><span>${esc(x.type)}<br><small class="d">${new Date(x.t).toLocaleString()}</small></span><span style="color:${c};text-align:right">${x.amt<0?"":"+"}${nf(x.amt)} FAT<br><small class="d">${esc(st)}</small></span></div>`}).join(""):`<p class="empty">${t("notx")}</p>`}<button class="btn sec w" style="margin-top:14px" onclick="closeM()">${t("close")}</button>`)}
+
+/* ============ Views ============ */
+const IC={mine:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/>',tasks:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/>',miners:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',friends:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5c2.6.1 4.2 1.7 4.6 4.5"/>',profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.4 4-6.5 8-6.5s7.2 2.1 8 6.5"/>'};
+const RC=2*Math.PI*128;
+const face=c=>C.coin?`<div class="face ${c} img"><img src="${esc(C.coin)}" alt=""></div>`:`<div class="face ${c}"><b>FAT</b></div>`;
+const V={
+mine(){const m=cur(),p=Math.min(100,S.earned/need()*100);
+const edges=Array.from({length:17},(_,i)=>`<i class="edge" style="--z:${i-8}"></i>`).join("");
+return`<div class="center"><div class="lab">${t("balance")}</div><div class="bal" id="as">${nf(S.pool+S.hold)}<small>FAT</small></div>
+<div class="sub2">${t("pool")} <b id="pl">${nf(S.pool)}</b> · ${t("hold")} <b>${nf(S.hold)}</b></div>
+<div class="stage ${S.mining?"on":""}"><svg class="ring" viewBox="0 0 290 290"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b4540a"/><stop offset="1" stop-color="#ffd25e"/></linearGradient></defs><circle cx="145" cy="145" r="128" fill="none" stroke="rgba(255,222,150,.1)" stroke-width="3"/><circle cx="145" cy="145" r="128" fill="none" stroke="url(#rg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${RC}" stroke-dashoffset="${RC*(1-p/100)}"/></svg>
+<div class="glow"></div><div class="scene" onclick="toggleMine()"><div class="coin3">${edges}${face("f")}${face("b")}</div></div></div>
+<div class="tick" id="rw">+${nf(S.claimable,5)}<small>${t("mined")}</small></div>
+<div class="metrics"><div class="m"><span>${t("speed")}</span><b id="sp">${S.mining?m.speed.toFixed(2):"0.00"} TH/s</b></div><div class="m"><span>${t("perHour")}</span><b>${S.mining?nf(m.hr,2):"0.00"} FAT</b></div><div class="m"><span>${t("level")}</span><b>${LV()}</b></div></div>
+<div class="prog"><span>${t("progress")}</span><span>${nf(S.earned)} / ${nf(need(),0)}</span></div><div class="bar"><i style="width:${p}%"></i></div>
+<div class="acts"><button class="btn go ${S.mining?"stop":""} w" onclick="toggleMine()">${S.mining?"■ "+t("stop"):"▶ "+t("start")}</button>
+<button class="btn sec w" id="cl" onclick="claim()">${S.claimable>0.0005?t("claim")+" +"+nf(S.claimable):t("nothing")}</button></div></div>`},
+tasks(){const n=Date.now(),done=S.lastCheck===new Date().toDateString();
+const days=[1,2,3,4,5,6,7].map(d=>`<div class="${d<=S.streak?"on":""}">${d}</div>`).join("");
+return`<h1>${t("earn")}</h1><div class="sub">${t("earnSub")}</div>
+<div class="card" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><div class="t">🎁 ${t("daily")}</div><div class="d">${t("streak")} ${S.streak} · ${t("today")} +${nf(Math.min(S.streak+1,7)*0.5)} FAT</div></div><button class="btn" ${done?"disabled":""} onclick="checkin()">${done?"✓":t("checkin")}</button></div><div class="days">${days}</div></div>
+${C.tasks.map(k=>{const s=S.tasks[k.id];let b;if(s&&s.v)b=`<div class="pill">${t("verifying")}</div>`;else if(s>n)b=`<div class="pill" data-cd="${s}">${hms((s-n)/1000)}</div>`;else b=`<button class="btn" onclick="doTask('${esc(k.id)}')">${t("complete")}</button>`;
+return`<div class="card"><div class="ic">${esc(k.ic)}</div><div class="grow"><div class="t">${esc(k.n)}</div><div class="d">${esc(k.d)}${k.d?" · ":""}+${nf(k.r,k.r%1?3:0)} FAT</div></div>${b}</div>`}).join("")}`},
+miners(){const ser=S.h24.filter(x=>x[0]>Date.now()-864e5);let acc=0;const pts=ser.map(x=>acc+=x[1]);
+const W=300,H=96,mx=Math.max(1,...pts);const xy=pts.map((v,i)=>[(i/Math.max(1,pts.length-1))*W,H-(v/mx)*(H-12)-4]);
+const line=xy.length?xy.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" "):`M0,${H-4} L${W},${H-4}`;
+const lv=LV();
+return`<h1>${t("store")}</h1><div class="sub">${t("storeSub")}</div>
+<div class="chart"><div class="row1"><span class="lab">${t("perf")}</span><b>+${nf(acc)}</b></div>
+<svg viewBox="0 0 ${W} ${H}" width="100%" style="margin-top:10px"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9f1c" stop-opacity=".35"/><stop offset="1" stop-color="#ff9f1c" stop-opacity="0"/></linearGradient></defs><path d="${line} L${W},${H} L0,${H} Z" fill="url(#ag)"/><path d="${line}" fill="none" stroke="#ffd25e" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+<div class="grid2">${MS().map((x,i)=>{const l=i+1,a=l===lv,u=l<lv,nx=l===lv+1,left=Math.max(0,x.need-S.earned);
+return`<div class="mc ${a?"act":nx?"nxt":u?"":"lock"}"><div class="lvl">LVL ${l}</div>${x.name?`<div class="d">${esc(x.name)}</div>`:""}<div class="pr">${nf(x.price)}<small>$</small></div><div class="d">${x.speed} TH/s</div><div class="d">${nf(x.hr,2)} FAT/h</div>
+${a?`<button class="btn w">${t("active")}</button>`:u?`<button class="btn w" disabled>✓</button>`:`<button class="btn w" disabled>${t("need")} ${Math.ceil(left)} FAT</button>`}</div>`}).join("")}</div>`},
+friends(){return`<h1>${t("friends")}</h1><div class="sub">${t("noref").split(".")[1]?t("noref").split(".")[1].trim():""}</div>
+<div class="card" style="display:block"><div class="t">🔗 ${t("invite")}</div><div class="d" style="margin:6px 0 12px">${esc(link())}</div><div class="grid2"><button class="btn" onclick="copyLink()">${t("copy")}</button><button class="btn sec" onclick="shareLink()">${t("share")}</button></div></div>
+<div class="card"><div class="ic">👥</div><div class="grow"><div class="t">${t("refs")}</div><div class="d">${S.refs.ok} ${t("succ")} · ${S.refs.total} ${t("total")}</div></div></div>
+<div class="card"><div class="ic">🎁</div><div class="grow"><div class="t">${t("refR")}</div><div class="d">${nf(0)} FAT</div></div><button class="btn" disabled>${t("claim")}</button></div>
+<div class="card"><div class="ic">⏳</div><div class="grow"><div class="t">${t("team")}</div><div class="d">${nf(0)} FAT</div></div><button class="btn" disabled>${t("claim")}</button></div>
+<div class="tree"><div class="node g">●</div><div class="d">${t("you")}</div><div class="ln"></div><div class="row"><div class="node">+</div><div class="node">+</div><div class="node">+</div></div></div>
+${S.refs.total?"":`<p class="empty">${t("noref").split(".")[0]}.</p>`}`},
+profile(){const ach=[[t("ach1"),1],[t("ach2"),S.tx.some(x=>x.type==="TASK")],[t("ach3"),S.claimed>0],[t("ach4"),S.refs.total>0],[t("ach5"),S.earned>=100],[t("ach6"),S.streak>=7]];
+const row=(i,a,b,r)=>`<div class="card"><div class="ic">${i}</div><div class="grow"><div class="t">${a}</div><div class="d">${b}</div></div>${r||""}</div>`;
+const nm=S.user||"FAT";
+return`<div class="me"><div class="av">${esc(nm.charAt(0).toUpperCase())}</div><div><b>${S.user?"@"+esc(S.user):"FAT"}</b><div class="d">${t("uid")}: ${esc(S.tgId)}</div></div></div>
+${row("💰",t("balance"),nf(S.pool+S.hold)+" FAT",`<button class="btn" onclick="wdM()">${t("wd")}</button>`)}
+${row("📈",t("earned"),nf(S.earned)+" FAT")}${row("✅",t("claimed"),nf(S.claimed)+" FAT")}${row("⏱",t("mt"),hms(S.miningMs/1000))}
+${row("🧾",t("hist"),S.tx.length,`<button class="btn sec" onclick="histM()">›</button>`)}
+<div class="card" onclick="togSound()"><div class="ic">🔊</div><div class="grow"><div class="t">${t("snd")}</div><div class="d">${S.sound?t("sndOn"):t("sndOff")}</div></div></div>
+<div class="sec">${t("lang")}</div><div class="grid2"><button class="btn ${S.lang==="en"?"":"sec"}" onclick="setLang('en')">English</button><button class="btn ${S.lang==="bn"?"":"sec"}" onclick="setLang('bn')">বাংলা</button></div>
+<div class="sec">${t("ach")}</div>
+<div class="grid2">${ach.map(a=>`<div class="m" style="${a[1]?"border-color:rgba(255,210,94,.6)":"opacity:.55"}"><span>${a[1]?"🏆":"🔒"}</span><b style="font-size:12.5px">${a[0]}</b></div>`).join("")}</div>
+${fbOK?"":`<p class="warn">ℹ️ ${t("doming")}</p>`}`}};
+
+/* ============ Render ============ */
+const TABS=["mine","tasks","miners","friends","profile"];
+function nav(){$("#nav").innerHTML=TABS.map(k=>`<button class="${k===tab?"a":""}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${IC[k]}</svg>${t(k)}</button>`).join("")}
+function go(k){tab=k;nav();draw();$("#view").scrollTop=0}
+function head(){$("#hl").innerHTML=`<b>${LV()}</b>${t("level")}`;const r=$("#hs");r.className="st"+(S.mining?" on":"");r.innerHTML="<i></i>"+(S.mining?t("on"):t("ready"))}
+function draw(){head();$("#view").innerHTML=V[tab]()}
+function refresh(){if(tab==="mine")head();else draw()}
+
+/* live tick: updates numbers only — coin animation is never restarted */
+setInterval(()=>{accrue();Object.keys(S.tasks).forEach(fin);
+ if(tab==="mine"){const r=$("#rw");if(r){r.innerHTML="+"+nf(S.claimable,5)+"<small>"+t("mined")+"</small>";const c=$("#cl");c.textContent=S.claimable>0.0005?t("claim")+" +"+nf(S.claimable):t("nothing")}}
+ document.querySelectorAll("[data-cd]").forEach(e=>{const s=(+e.dataset.cd-Date.now())/1000;if(s<=0)draw();else e.textContent=hms(s)})},250);
+setInterval(()=>{save();push()},5000);
+/* save + sync the moment the app is hidden/closed so offline mining time is stored */
+document.addEventListener("visibilitychange",()=>{if(document.hidden){accrue();save();push(true)}else{const g=accrue();if(S.mining&&g>0.01)toast(t("offline")+" +"+nf(g));refresh()}});
+addEventListener("pagehide",()=>{accrue();save();push(true)});
+
+/* embers + claim burst */
+const cv=$("#fx"),cx=cv.getContext("2d");let P=[];
+function rs(){cv.width=innerWidth;cv.height=innerHeight}rs();addEventListener("resize",rs);
+for(let i=0;i<30;i++)P.push({x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.5+.4,v:Math.random()*.25+.08,b:0});
+function burst(){const x=cv.width/2,y=cv.height*.4;for(let i=0;i<46;i++){const a=Math.random()*6.28,s=Math.random()*5+2;P.push({x,y,r:2.4,vx:Math.cos(a)*s,vy:Math.sin(a)*s,b:1,l:55})}}
+(function loop(){cx.clearRect(0,0,cv.width,cv.height);P=P.filter(p=>!p.b||p.l-->0);const k=S.mining?2.4:1;P.forEach(p=>{if(p.b){p.x+=p.vx;p.y+=p.vy}else{p.y-=p.v*k;if(p.y<0)p.y=cv.height}cx.fillStyle=p.b?"rgba(255,215,90,.9)":`rgba(255,170,40,${S.mining?.55:.28})`;cx.beginPath();cx.arc(p.x,p.y,p.r,0,6.28);cx.fill()});requestAnimationFrame(loop)})();
+
+/* ============ Firebase boot ============ */
+async function bootFB(){
+ if(!firebaseConfig.apiKey||!window.firebase)return;
+ firebase.initializeApp(firebaseConfig);const auth=firebase.auth();db=firebase.firestore();
+ if(AUTH_URL&&tg&&tg.initData){const r=await fetch(AUTH_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({initData:tg.initData})});const j=await r.json();await auth.signInWithCustomToken(j.token)}
+ else await auth.signInAnonymously();
+ const id=auth.currentUser.uid;
+ const [cs,ts,ms,us]=await Promise.all([db.doc("config/app").get(),db.collection("tasks").get(),db.collection("miners").get(),db.doc("users/"+id).get()]);
+ if(!booting)return;
+ uid=id;
+ if(cs.exists){const c=cs.data();["bot","app","coin"].forEach(k=>{if(typeof c[k]==="string")C[k]=c[k]});if(c.minWd!=null)C.minWd=+c.minWd;if(c.cap!=null)C.cap=+c.cap}
+ const lst=q=>q.docs.map(d=>Object.assign({id:d.id},d.data())).filter(x=>x.active!==false).sort((a,b)=>(a.order||0)-(b.order||0));
+ const tl=lst(ts);if(tl.length)C.tasks=tl.map(x=>({id:x.id,ic:x.ic||"🌐",n:x.n||"Task",d:x.d||"",r:+x.r||1,cd:+x.cd||7200,url:x.url||"https://t.me"}));
+ const ml=lst(ms);if(ml.length)C.miners=ml.map(x=>({id:x.id,name:x.name||"",price:+x.price||0,speed:+x.speed||0,need:+x.need||0,hr:+x.hr||0}));
+ try{localStorage.setItem(CK,JSON.stringify(C))}catch(e){}
+ if(us.exists){const r=us.data();if((r.upd||0)>(S.upd||0)){S=Object.assign(fresh(),r);S.tgId=tu.id;if(tu.username)S.user=tu.username}}
+ else if(startP&&/^\d+$/.test(startP)&&String(startP)!==String(tu.id))S.ref=startP;
+ fbOK=true;dirty=true;
+ db.collection("withdrawals").where("uid","==",uid).onSnapshot(sn=>{sn.docs.forEach(d=>{const x=d.data(),was=WDS[d.id];WDS[d.id]=x.status;
+  if(x.status==="REJECTED"&&!(S.refunded||[]).includes(d.id)){S.refunded=(S.refunded||[]).concat(d.id);S.pool+=x.amt;save();push(true);toast("↩ +"+nf(x.amt))}
+  else if(was&&was!==x.status&&x.status==="APPROVED")toast("✓ "+t("wd")+" APPROVED")});
+  if(tab==="profile")draw()},()=>{});
+}
+(async()=>{
+ const elapsed=Date.now()-(S.last||Date.now());
+ try{await Promise.race([bootFB(),new Promise(r=>setTimeout(r,6500))])}catch(e){console.warn("Firebase:",e)}
+ booting=false;
+ const g=accrue();if(S.mining&&elapsed>60000&&g>0.001)toast(t("offline")+" +"+nf(g));
+ Object.keys(S.tasks).forEach(fin);S.lvl=LV();save();push(true);nav();draw();
+ const b=$("#boot");b.style.opacity=0;setTimeout(()=>b.remove(),500);
+})();
+</script>
+</body>
+</html>
